@@ -3,6 +3,7 @@ package com.coursecampus.planetariumar.ui.home
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,12 +19,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,121 +53,112 @@ import com.coursecampus.planetariumar.ui.theme.NeonBlue
 import com.coursecampus.planetariumar.ui.theme.NeonGreen
 import com.coursecampus.planetariumar.ui.theme.SpaceBlack
 import com.coursecampus.planetariumar.ui.theme.StarWhite
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun HomeScreen(
     onPlanetClick: (String) -> Unit
 ) {
     val planets = remember { PlanetRepository().getPlanets() }
+    val listState = rememberLazyListState()
+    var lastClickedPlanetIndex by remember { mutableStateOf(0) }
+    var isFirstLoad by remember { mutableStateOf(true) }
+    
+    // Scroll to the last clicked planet when returning from bottom sheet
+    LaunchedEffect(lastClickedPlanetIndex) {
+        if (!isFirstLoad) {
+            // Add some delay to ensure proper layout
+            kotlinx.coroutines.delay(100)
+            // Scroll to the last clicked planet
+            listState.animateScrollToItem(lastClickedPlanetIndex, scrollOffset = 0)
+        }
+    }
+    
+    // Mark first load as complete after initial setup
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(200)
+        isFirstLoad = false
+    }
     
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black) // Solid black background first
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(SpaceBlack, DeepSpace)
-                )
-            )
+            .background(Color.Black) // Pure black background first
     ) {
-        // Full-screen meteors background - covering entire screen with no padding
+        // Full-screen meteors background - same as splash screen
         val skyMeteorsComposition by rememberLottieComposition(
             LottieCompositionSpec.RawRes(R.raw.sky_meteors)
         )
         val skyMeteorsProgress by animateLottieCompositionAsState(
             composition = skyMeteorsComposition,
             isPlaying = true,
+            speed = 0.9f, // Slower speed for more elegant animation
             iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever
         )
         
         LottieAnimation(
             composition = skyMeteorsComposition,
             progress = { skyMeteorsProgress },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize() // Fill entire screen
         )
         
         Column(
             modifier = Modifier.fillMaxSize()
         ) {
-            // Enhanced header with better design - no emojis
-            Card(
+            // Enhanced Header with better typography
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = DeepSpace.copy(alpha = 0.8f)
-                ),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 8.dp
-                )
+                    .padding(top = 50.dp, start = 24.dp, end = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Our Solar System",
-                    fontSize = 36.sp,
-                    fontWeight = FontWeight.Bold,
+                    style = androidx.compose.material3.MaterialTheme.typography.displayMedium,
                     color = NeonBlue,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(20.dp)
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Text(
+                    text = "Explore the planets and their orbits",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                    color = StarWhite.copy(alpha = 0.9f),
+                    textAlign = TextAlign.Center
                 )
             }
             
-            // Horizontal Solar System - taking MAX HEIGHT and centered
+            // Horizontal Solar System - taking remaining space
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f) // Take ALL remaining space
-                    .padding(vertical = 10.dp), // Reduced padding to maximize height
+                    .weight(1f) // Take remaining space
+                    .padding(vertical = 30.dp),
                 contentAlignment = Alignment.Center // Center vertically
             ) {
                 LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(40.dp), // More spacing for larger planets
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 40.dp), // More padding for larger planets
+                    state = listState,
+                    horizontalArrangement = Arrangement.spacedBy(0.dp), // No fixed spacing, we'll use custom spacing
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                        start = 0.dp, // Extra padding to center sun
+                        end = 50.dp
+                    ),
                     modifier = Modifier.fillMaxSize(), // Take MAX SIZE
                     verticalAlignment = Alignment.CenterVertically // Center planets vertically
                 ) {
                     items(planets) { planet ->
+                        val planetIndex = planets.indexOf(planet)
                         PlanetItem(
                             planet = planet,
-                            onClick = { onPlanetClick(planet.id) }
+                            onClick = { 
+                                lastClickedPlanetIndex = planetIndex
+                                onPlanetClick(planet.id) 
+                            },
+                            isFirst = planet.name.lowercase() == "sun"
                         )
                     }
-                }
-            }
-            
-            // Enhanced instructions card with better design - no emojis
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = DeepSpace.copy(alpha = 0.9f)
-                ),
-                shape = RoundedCornerShape(20.dp),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 12.dp
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Tap on any planet to learn more",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = NeonGreen,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Text(
-                        text = "Scroll to explore the entire solar system",
-                        fontSize = 16.sp,
-                        color = StarWhite,
-                        textAlign = TextAlign.Center
-                    )
                 }
             }
         }
@@ -174,44 +168,81 @@ fun HomeScreen(
 @Composable
 fun PlanetItem(
     planet: Planet,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isFirst: Boolean
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    var shouldNavigate by remember { mutableStateOf(false) }
     
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.9f else 1f,
-        animationSpec = tween(100),
+        targetValue = if (isPressed) 0.85f else 1f,
+        animationSpec = tween(200),
         label = "planet scale"
     )
     
+    val elevation by animateFloatAsState(
+        targetValue = if (isPressed) 0f else 8f,
+        animationSpec = tween(200),
+        label = "planet elevation"
+    )
+    
+    // Handle navigation after animation
+    LaunchedEffect(shouldNavigate) {
+        if (shouldNavigate) {
+            kotlinx.coroutines.delay(200) // Slightly longer delay for better feedback
+            onClick()
+            shouldNavigate = false
+        }
+    }
+    
     // Lottie composition for planet animation
     val planetComposition by rememberLottieComposition(
-        LottieCompositionSpec.RawRes(R.raw.earth)
+        LottieCompositionSpec.RawRes(
+            when (planet.name.lowercase()) {
+                "sun" -> R.raw.sun
+                "mercury" -> R.raw.mercury
+                "venus" -> R.raw.mercury
+                "earth" -> R.raw.earth
+                "mars" -> R.raw.mercury
+                "jupiter" -> R.raw.mercury
+                "saturn" -> R.raw.mercury
+                "uranus" -> R.raw.mercury
+                "neptune" -> R.raw.mercury
+                "pluto" -> R.raw.mercury
+                else -> R.raw.mercury
+            }
+        )
     )
     val planetProgress by animateLottieCompositionAsState(
         composition = planetComposition,
         isPlaying = true,
+        speed = 0.9f, // Slower speed for more elegant animation
         iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever
     )
     
     val planetSize = getPlanetSize(planet.name)
     val isSun = planet.name.lowercase() == "sun"
     
+    // Calculate proportional spacing based on real distances
+    val spacingBefore = getProportionalSpacing(planet.name)
+    
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
+            .padding(start = if (isFirst) 0.dp else spacingBefore)
             .clickable {
                 isPressed = true
-                onClick()
+                shouldNavigate = true
             }
     ) {
-        // Planet with only animation - no background, much larger
+        // Planet with enhanced visual feedback
         Box(
             modifier = Modifier
                 .size(planetSize)
                 .scale(scale),
             contentAlignment = Alignment.Center
         ) {
+            // Planet animation
             LottieAnimation(
                 composition = planetComposition,
                 progress = { planetProgress },
@@ -219,23 +250,26 @@ fun PlanetItem(
             )
         }
         
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(24.dp))
         
-        // Enhanced planet name with better styling
+        // Enhanced planet name with better typography
         Text(
             text = planet.name,
-            fontSize = if (isSun) 26.sp else 22.sp,
-            fontWeight = FontWeight.Bold,
+            style = if (isSun) 
+                androidx.compose.material3.MaterialTheme.typography.headlineMedium
+            else 
+                androidx.compose.material3.MaterialTheme.typography.titleLarge,
             color = StarWhite,
-            textAlign = TextAlign.Center
+            textAlign = TextAlign.Center,
+            fontWeight = if (isSun) FontWeight.Bold else FontWeight.SemiBold
         )
         
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
         
-        // Enhanced distance display
+        // Enhanced distance display with better typography
         Text(
             text = planet.distanceFromSun,
-            fontSize = 16.sp,
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
             color = NeonGreen,
             textAlign = TextAlign.Center,
             fontWeight = FontWeight.Medium
@@ -245,17 +279,34 @@ fun PlanetItem(
 
 private fun getPlanetSize(planetName: String): androidx.compose.ui.unit.Dp {
     return when (planetName.lowercase()) {
-        "sun" -> 450.dp // Even larger for max height
-        "jupiter" -> 320.dp
-        "saturn" -> 280.dp
-        "uranus" -> 220.dp
-        "neptune" -> 210.dp
-        "earth" -> 180.dp
-        "venus" -> 170.dp
-        "mars" -> 160.dp
-        "mercury" -> 140.dp
-        "pluto" -> 120.dp
-        else -> 180.dp
+        "sun" -> 500.dp // Much larger sun
+        "jupiter" -> 380.dp
+        "saturn" -> 340.dp
+        "uranus" -> 280.dp
+        "neptune" -> 270.dp
+        "earth" -> 220.dp
+        "venus" -> 210.dp
+        "mars" -> 200.dp
+        "mercury" -> 180.dp
+        "pluto" -> 160.dp
+        else -> 220.dp
+    }
+}
+
+// Function to calculate proportional spacing based on real distances
+private fun getProportionalSpacing(planetName: String): androidx.compose.ui.unit.Dp {
+    return when (planetName.lowercase()) {
+        "sun" -> 0.dp // No spacing before sun
+        "mercury" -> 20.dp // Small spacing from sun
+        "venus" -> 30.dp // Slightly more spacing
+        "earth" -> 40.dp // More spacing
+        "mars" -> 50.dp // Even more spacing
+        "jupiter" -> 120.dp // Much more spacing (far from inner planets)
+        "saturn" -> 80.dp // Large spacing
+        "uranus" -> 100.dp // Very large spacing
+        "neptune" -> 120.dp // Maximum spacing
+        "pluto" -> 150.dp // Extreme spacing (very far)
+        else -> 50.dp
     }
 }
 

@@ -62,9 +62,9 @@ fun PlanetariumARApp() {
                         popUpTo(Screen.Splash.route) { inclusive = true }
                     }
                 }
-            )
-        }
-        
+    )
+}
+
         composable(Screen.Home.route) {
             HomeScreen(
                 onPlanetClick = { planetId ->

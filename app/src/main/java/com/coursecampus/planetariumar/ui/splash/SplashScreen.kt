@@ -3,6 +3,7 @@ package com.coursecampus.planetariumar.ui.splash
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -31,9 +32,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.airbnb.lottie.compose.LottieAnimation
@@ -41,10 +42,9 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.coursecampus.planetariumar.R
-import com.coursecampus.planetariumar.ui.theme.CosmicBlue
 import com.coursecampus.planetariumar.ui.theme.DeepSpace
 import com.coursecampus.planetariumar.ui.theme.NeonBlue
-import com.coursecampus.planetariumar.ui.theme.SpaceBlack
+import com.coursecampus.planetariumar.ui.theme.NeonGreen
 import com.coursecampus.planetariumar.ui.theme.StarWhite
 import kotlinx.coroutines.delay
 
@@ -52,7 +52,8 @@ import kotlinx.coroutines.delay
 fun SplashScreen(
     onNavigateToHome: () -> Unit
 ) {
-    var titleVisible by remember { mutableStateOf(false) }
+    var rocketFlying by remember { mutableStateOf(false) }
+    var showText by remember { mutableStateOf(false) }
     
     val infiniteTransition = rememberInfiniteTransition(label = "stars")
     val starAlpha by infiniteTransition.animateFloat(
@@ -65,14 +66,29 @@ fun SplashScreen(
         label = "star twinkle"
     )
     
-    // Lottie composition for sky meteors
-    val skyMeteorsComposition by rememberLottieComposition(
-        LottieCompositionSpec.RawRes(R.raw.sky_meteors)
+    // Rocket animation states
+    val rocketScale by animateFloatAsState(
+        targetValue = if (rocketFlying) 0.2f else 1f,
+        animationSpec = tween(1500),
+        label = "rocket scale"
     )
-    val skyMeteorsProgress by animateLottieCompositionAsState(
-        composition = skyMeteorsComposition,
-        isPlaying = true,
-        iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever
+    
+    val rocketOffset by animateFloatAsState(
+        targetValue = if (rocketFlying) -800f else 0f,
+        animationSpec = tween(1500),
+        label = "rocket offset"
+    )
+    
+    val rocketAlpha by animateFloatAsState(
+        targetValue = if (rocketFlying) 0f else 1f,
+        animationSpec = tween(1500),
+        label = "rocket alpha"
+    )
+    
+    val textAlpha by animateFloatAsState(
+        targetValue = if (rocketFlying) 0f else 1f,
+        animationSpec = tween(500),
+        label = "text alpha"
     )
     
     // Lottie composition for rocket launch
@@ -82,56 +98,62 @@ fun SplashScreen(
     val rocketLaunchProgress by animateLottieCompositionAsState(
         composition = rocketLaunchComposition,
         isPlaying = true,
+        speed = 0.9f, // Slower speed for more elegant animation
+        iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever
+    )
+    
+    // Lottie composition for sky meteors
+    val skyMeteorsComposition by rememberLottieComposition(
+        LottieCompositionSpec.RawRes(R.raw.sky_meteors)
+    )
+    val skyMeteorsProgress by animateLottieCompositionAsState(
+        composition = skyMeteorsComposition,
+        isPlaying = true,
+        speed = 0.9f, // Slower speed for more elegant animation
         iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever
     )
     
     LaunchedEffect(Unit) {
-        delay(1000)
-        titleVisible = true
+        delay(800)
+        showText = true
+    }
+    
+    // Handle navigation after rocket animation
+    LaunchedEffect(rocketFlying) {
+        if (rocketFlying) {
+            delay(1000)
+            onNavigateToHome()
+        }
     }
     
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black) // Solid black background first
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(SpaceBlack, DeepSpace, CosmicBlue)
-                )
-            )
+            .background(Color.Black) // Pure black background first
             .clickable(
-                enabled = titleVisible
+                enabled = showText && !rocketFlying
             ) {
-                onNavigateToHome()
+                rocketFlying = true
             }
     ) {
-        // Full-screen sky meteors background animation
+        // Full-screen sky meteors background animation - NO PADDING
         LottieAnimation(
             composition = skyMeteorsComposition,
             progress = { skyMeteorsProgress },
-            modifier = Modifier.fillMaxSize()
-        )
-        
-        // Rocket launch animation in center
-        LottieAnimation(
-            composition = rocketLaunchComposition,
-            progress = { rocketLaunchProgress },
-            modifier = Modifier
-                .size(200.dp)
-                .align(Alignment.Center)
+            modifier = Modifier.fillMaxSize() // Fill entire screen
         )
         
         // Animated stars background overlay
-        repeat(50) { index ->
-            val x = (index * 37) % 400
-            val y = (index * 73) % 800
+        repeat(30) { index ->
+            val x = (index * 47) % 400
+            val y = (index * 83) % 800
             val size = (index % 3 + 1) * 2
             
             Box(
                 modifier = Modifier
                     .offset(x.dp, y.dp)
                     .size(size.dp)
-                    .alpha(starAlpha * 0.7f)
+                    .alpha(starAlpha * 0.8f)
                     .background(
                         color = StarWhite,
                         shape = CircleShape
@@ -139,42 +161,50 @@ fun SplashScreen(
             )
         }
         
-        // Enhanced title with better card design - no emojis
-        if (titleVisible) {
+        // Rocket in center - flies UP and shrinks when tapped
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = rocketOffset.dp) // Positive offset makes it go UP to top
+                .scale(rocketScale)
+                .alpha(rocketAlpha)
+        ) {
+            LottieAnimation(
+                composition = rocketLaunchComposition,
+                progress = { rocketLaunchProgress },
+                modifier = Modifier.size(280.dp) // Large rocket
+            )
+        }
+        
+        // Text below rocket - "Tap to enter solar system" - ENHANCED
+        if (showText) {
             Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 80.dp),
+                    .padding(bottom = 140.dp)
+                    .alpha(textAlpha),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Card(
-                    colors = CardDefaults.cardColors(
-                        containerColor = DeepSpace.copy(alpha = 0.9f)
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 12.dp
-                    )
-                ) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "PlanetariumAR",
-                            fontSize = 40.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = NeonBlue
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "Tap to explore the solar system",
-                            fontSize = 20.sp,
-                            color = StarWhite,
-                            fontWeight = FontWeight.Medium
-                        )
-                    }
-                }
+                Text(
+                    text = "Tap to enter solar system",
+                    style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = NeonBlue, // Blue color
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                // Enhanced instruction text
+                Text(
+                    text = "Ready for space adventure?",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = StarWhite.copy(alpha = 0.8f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(8.dp)
+                )
             }
         }
     }

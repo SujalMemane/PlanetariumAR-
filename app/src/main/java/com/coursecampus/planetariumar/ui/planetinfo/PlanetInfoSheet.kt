@@ -67,6 +67,7 @@ import com.coursecampus.planetariumar.ui.theme.SpaceBlack
 import com.coursecampus.planetariumar.ui.theme.StarWhite
 import com.coursecampus.planetariumar.ui.theme.StellarPurple
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.offset
 
 @Composable
 fun PlanetInfoSheet(
@@ -83,7 +84,7 @@ fun PlanetInfoSheet(
                 dismissOnClickOutside = true
             )
         ) {
-            PlanetInfoBottomDrawer(
+            AnimatedPlanetBottomSheet(
                 planet = planet,
                 onDismiss = onDismiss
             )
@@ -92,7 +93,7 @@ fun PlanetInfoSheet(
 }
 
 @Composable
-fun PlanetInfoBottomDrawer(
+fun AnimatedPlanetBottomSheet(
     planet: Planet,
     onDismiss: () -> Unit
 ) {
@@ -103,13 +104,41 @@ fun PlanetInfoBottomDrawer(
         label = "content scale"
     )
     
+    // Planet animation states
+    val planetScale by animateFloatAsState(
+        targetValue = if (isPressed) 1.2f else 1f,
+        animationSpec = tween(300),
+        label = "planet scale"
+    )
+    
+    val planetOffset by animateFloatAsState(
+        targetValue = if (isPressed) -100f else 0f,
+        animationSpec = tween(300),
+        label = "planet offset"
+    )
+    
     // Lottie composition for planet animation
     val planetComposition by rememberLottieComposition(
-        LottieCompositionSpec.RawRes(R.raw.earth)
+        LottieCompositionSpec.RawRes(
+            when (planet.name.lowercase()) {
+                "sun" -> R.raw.sun
+                "mercury" -> R.raw.mercury
+                "venus" -> R.raw.mercury
+                "earth" -> R.raw.earth
+                "mars" -> R.raw.mercury
+                "jupiter" -> R.raw.mercury
+                "saturn" -> R.raw.mercury
+                "uranus" -> R.raw.mercury
+                "neptune" -> R.raw.mercury
+                "pluto" -> R.raw.mercury
+                else -> R.raw.mercury
+            }
+        )
     )
     val planetProgress by animateLottieCompositionAsState(
         composition = planetComposition,
         isPlaying = true,
+        speed = 0.9f, // Slower speed for more elegant animation
         iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever
     )
     
@@ -120,133 +149,140 @@ fun PlanetInfoBottomDrawer(
     val skyMeteorsProgress by animateLottieCompositionAsState(
         composition = skyMeteorsComposition,
         isPlaying = true,
+        speed = 0.9f, // Slower speed for more elegant animation
         iterations = com.airbnb.lottie.compose.LottieConstants.IterateForever
     )
     
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.Black) // Solid black background first
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(SpaceBlack, DeepSpace)
-                )
-            )
+            .background(Color.Black) // Pure black background
     ) {
-        // Full-screen meteors background - covering entire screen
+        // Full-screen meteors background - NO PADDING, FILLS ENTIRE SCREEN
         LottieAnimation(
             composition = skyMeteorsComposition,
             progress = { skyMeteorsProgress },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize() // Fill entire screen
         )
         
-        // Planet floating at the TOP of the screen
+        // Animated planet floating at the TOP of the screen
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .padding(top = 60.dp)
+                .padding(top = 50.dp)
+                .offset(y = planetOffset.dp)
+                .scale(planetScale)
         ) {
             LottieAnimation(
                 composition = planetComposition,
                 progress = { planetProgress },
-                modifier = Modifier.size(350.dp) // Large floating planet at top
+                modifier = Modifier.size(260.dp) // Large floating planet at top
             )
         }
         
-        // Beautiful Bottom Drawer with planet info
+        // Beautiful Bottom Sheet with planet info - ENHANCED DESIGN
         Card(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
-                .heightIn(max = 600.dp) // Limit height for drawer feel
-                .padding(16.dp)
+                .heightIn(max = 580.dp) // Slightly larger for more content
+                .padding(vertical = 6.dp) // Only vertical padding, no horizontal padding
                 .scale(scale)
                 .clickable { isPressed = true },
-            shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp), // Rounded top corners for drawer
+            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp), // Larger radius
             colors = CardDefaults.cardColors(
-                containerColor = DeepSpace.copy(alpha = 0.95f) // More opaque
+                containerColor = planet.color.copy(alpha = 0.15f) // Use planet's color with transparency
             ),
             elevation = CardDefaults.cardElevation(
-                defaultElevation = 32.dp // High elevation for floating drawer effect
+                defaultElevation = 28.dp // Higher elevation
             )
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState())
+                    .padding(18.dp) // Slightly more padding for content
             ) {
-                // Drawer handle
+                // Sheet handle - ENHANCED
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = 14.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(width = 60.dp, height = 6.dp)
+                            .size(width = 56.dp, height = 5.dp) // Larger handle
                             .background(
                                 color = MeteorGray.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(3.dp)
+                                shape = RoundedCornerShape(2.5.dp)
                             )
                     )
                 }
                 
-                // Header with close button
+                // Header with close button - FIXED AT TOP
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = planet.name,
-                        fontSize = 42.sp, // Larger text
-                        fontWeight = FontWeight.Bold,
-                        color = NeonBlue
-                    )
+                    Column {
+                        Text(
+                            text = planet.name,
+                            style = androidx.compose.material3.MaterialTheme.typography.displaySmall,
+                            fontWeight = FontWeight.Bold,
+                            color = planet.color // Use planet's color for title
+                        )
+                        Text(
+                            text = getPlanetType(planet.name),
+                            style = androidx.compose.material3.MaterialTheme.typography.labelLarge,
+                            color = planet.color.copy(alpha = 0.8f), // Use planet's color with transparency
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                     
                     IconButton(
                         onClick = onDismiss,
-                        modifier = Modifier.size(64.dp) // Larger button
+                        modifier = Modifier.size(56.dp) // Larger button
                     ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
-                            tint = StarWhite,
-                            modifier = Modifier.size(36.dp) // Larger icon
+                            tint = planet.color.copy(alpha = 0.9f), // Use planet's color for close button
+                            modifier = Modifier.size(32.dp) // Larger icon
                         )
                     }
                 }
                 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 
-                // Enhanced description card with better design
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = StellarPurple.copy(alpha = 0.5f) // More visible
-                    ),
-                    shape = RoundedCornerShape(24.dp), // More rounded
-                    elevation = CardDefaults.cardElevation(
-                        defaultElevation = 12.dp
-                    )
+                // Scrollable content - DESCRIPTION AND FACTS
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState())
                 ) {
+                    // Description - ENHANCED
                     Text(
                         text = planet.description,
-                        fontSize = 20.sp, // Larger text
+                        style = androidx.compose.material3.MaterialTheme.typography.bodyLarge,
                         color = StarWhite,
                         textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(28.dp)
+                        lineHeight = 28.sp, // Better line height
+                        modifier = Modifier.padding(vertical = 16.dp)
                     )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Enhanced planet facts with more information
+                    PlanetFactsSection(planet)
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    // Fun fact section
+                    FunFactSection(planet)
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
                 }
-                
-                Spacer(modifier = Modifier.height(28.dp))
-                
-                // Enhanced planet facts with better design
-                PlanetFactsSection(planet)
-                
-                Spacer(modifier = Modifier.height(20.dp))
             }
         }
     }
@@ -258,60 +294,111 @@ fun PlanetFactsSection(planet: Planet) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Text(
-            text = "Amazing Facts About ${planet.name}",
-            fontSize = 28.sp, // Larger text
+            text = "Quick Facts",
+            style = androidx.compose.material3.MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = NeonGreen,
+            color = planet.color.copy(alpha = 0.9f), // Use planet's color
             textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 24.dp)
+            modifier = Modifier.padding(bottom = 20.dp)
         )
         
-        FunFactRow("Distance from Sun", planet.distanceFromSun)
-        FunFactRow("Orbit Time", planet.orbitTime)
-        FunFactRow("Gravity", planet.gravity)
-        FunFactRow("Surface", planet.surface)
-        FunFactRow("Moons", planet.moons)
+        // Facts without cards - ENHANCED LAYOUT
+        FactRow("Distance from Sun", planet.distanceFromSun, planet.color)
+        FactRow("Orbit Time", planet.orbitTime, planet.color)
+        FactRow("Gravity", planet.gravity, planet.color)
+        FactRow("Surface Type", planet.surface, planet.color)
+        FactRow("Number of Moons", planet.moons, planet.color)
     }
 }
 
 @Composable
-fun FunFactRow(
+fun FunFactSection(planet: Planet) {
+    Column(
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = "Did You Know?",
+            style = androidx.compose.material3.MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = planet.color.copy(alpha = 0.8f), // Use planet's color
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 18.dp)
+        )
+        
+        Text(
+            text = getFunFact(planet.name),
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+            color = StarWhite.copy(alpha = 0.9f),
+            textAlign = TextAlign.Center,
+            lineHeight = 24.sp,
+            modifier = Modifier.padding(vertical = 10.dp)
+        )
+    }
+}
+
+@Composable
+fun FactRow(
     label: String,
-    value: String
+    value: String,
+    planetColor: Color
 ) {
-    Card(
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp), // More spacing
-        colors = CardDefaults.cardColors(
-            containerColor = MeteorGray.copy(alpha = 0.4f) // More visible
-        ),
-        shape = RoundedCornerShape(20.dp), // More rounded
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 8.dp
-        )
+            .padding(vertical = 10.dp), // More spacing
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(24.dp), // More padding
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                fontSize = 18.sp, // Larger text
-                color = MeteorGray,
-                fontWeight = FontWeight.Medium
-            )
-            
-            Text(
-                text = value,
-                fontSize = 18.sp, // Larger text
-                color = StarWhite,
-                fontWeight = FontWeight.Bold
-            )
-        }
+        Text(
+            text = label,
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+            color = planetColor.copy(alpha = 0.7f), // Use planet's color with transparency
+            fontWeight = FontWeight.Medium
+        )
+        
+        Text(
+            text = value,
+            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+            color = StarWhite,
+            fontWeight = FontWeight.Bold
+        )
+    }
+    
+    // Simple divider between facts
+    if (label != "Number of Moons") { // Don't show divider after last fact
+        Divider(
+            modifier = Modifier.padding(vertical = 8.dp),
+            color = planetColor.copy(alpha = 0.3f), // Use planet's color for divider
+            thickness = 1.dp
+        )
+    }
+}
+
+// Helper functions for additional content
+private fun getPlanetType(planetName: String): String {
+    return when (planetName.lowercase()) {
+        "sun" -> "Yellow Dwarf Star"
+        "mercury", "venus", "earth", "mars" -> "Terrestrial Planet"
+        "jupiter", "saturn" -> "Gas Giant"
+        "uranus", "neptune" -> "Ice Giant"
+        "pluto" -> "Dwarf Planet"
+        else -> "Celestial Body"
+    }
+}
+
+private fun getFunFact(planetName: String): String {
+    return when (planetName.lowercase()) {
+        "sun" -> "The Sun contains 99.86% of the solar system's mass! It's so bright that you can't look at it directly without special protection."
+        "mercury" -> "A day on Mercury is longer than its year! It takes 176 Earth days to rotate once, but only 88 days to orbit the Sun."
+        "venus" -> "Venus rotates backwards compared to most planets! It spins clockwise while most planets spin counterclockwise."
+        "earth" -> "Earth is the only planet not named after a Greek or Roman god! The name 'Earth' comes from Old English and Germanic words meaning 'ground'."
+        "mars" -> "Mars has the largest canyon in the solar system - Valles Marineris is 4,000 km long and 7 km deep! That's 10 times longer than the Grand Canyon."
+        "jupiter" -> "Jupiter's Great Red Spot is actually a giant storm that's been raging for over 400 years! It's so big that three Earths could fit inside it."
+        "saturn" -> "Saturn's rings are made of billions of pieces of ice and rock, some as small as a grain of sand and others as large as a house!"
+        "uranus" -> "Uranus was the first planet discovered with a telescope! It was found by William Herschel in 1781, and he originally wanted to name it 'George's Star'."
+        "neptune" -> "Neptune was discovered through math before it was seen! Scientists predicted its existence by studying Uranus's orbit and noticing gravitational disturbances."
+        "pluto" -> "Pluto has a heart-shaped glacier called 'Tombaugh Regio'! It's made of nitrogen ice and is about 1,000 km across."
+        else -> "Every planet in our solar system is unique and fascinating in its own way!"
     }
 }
 
@@ -330,7 +417,7 @@ fun PlanetInfoSheetPreview() {
         color = EarthBlue
     )
     
-    PlanetInfoBottomDrawer(
+    AnimatedPlanetBottomSheet(
         planet = samplePlanet,
         onDismiss = {}
     )
