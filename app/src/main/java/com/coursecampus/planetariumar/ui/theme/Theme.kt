@@ -9,35 +9,56 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = NeonBlue,
+    secondary = NeonGreen,
+    tertiary = StellarPurple,
+    background = SpaceBlack,
+    surface = DeepSpace,
+    onPrimary = StarWhite,
+    onSecondary = SpaceBlack,
+    onTertiary = StarWhite,
+    onBackground = StarWhite,
+    onSurface = StarWhite,
+    primaryContainer = CosmicBlue,
+    secondaryContainer = MeteorGray,
+    tertiaryContainer = StellarPurple,
+    onPrimaryContainer = StarWhite,
+    onSecondaryContainer = SpaceBlack,
+    onTertiaryContainer = StarWhite
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
-    onPrimary = Color.White,
-    onSecondary = Color.White,
-    onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    primary = NeonBlue,
+    secondary = NeonGreen,
+    tertiary = StellarPurple,
+    background = SpaceBlack,
+    surface = DeepSpace,
+    onPrimary = StarWhite,
+    onSecondary = SpaceBlack,
+    onTertiary = StarWhite,
+    onBackground = StarWhite,
+    onSurface = StarWhite,
+    primaryContainer = CosmicBlue,
+    secondaryContainer = MeteorGray,
+    tertiaryContainer = StellarPurple,
+    onPrimaryContainer = StarWhite,
+    onSecondaryContainer = SpaceBlack,
+    onTertiaryContainer = StarWhite
 )
 
 @Composable
 fun PlanetariumARTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -48,6 +69,22 @@ fun PlanetariumARTheme(
 
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
+    }
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as Activity).window
+            // Make the system bars transparent and extend the app behind them
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            
+            // Set status bar and navigation bar colors to black for space theme
+            window.statusBarColor = Color.Black.toArgb()
+            window.navigationBarColor = Color.Black.toArgb()
+            
+            // Make status bar icons light (white) for dark background
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            WindowCompat.getInsetsController(window, view).isAppearanceLightNavigationBars = false
+        }
     }
 
     MaterialTheme(
